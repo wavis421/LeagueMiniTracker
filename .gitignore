@@ -1,0 +1,7 @@
+/bin/
+
+# =========================
+# Build and Launch Files (added by Wendy)
+# =========================
+*.class
+*.pem

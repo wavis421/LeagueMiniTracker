@@ -3,7 +3,7 @@ package controller;
 import java.util.ArrayList;
 
 import model.MiniTrackerDatabase;
-import model.StudentModel;
+import model.StudentMiniModel;
 
 public class MiniTrackerTest {
 	public static void main(String[] args) {
@@ -26,9 +26,9 @@ public class MiniTrackerTest {
 		conn.closeConnection();
 	}
 	
-	private static void printStudents(ArrayList<StudentModel> list) {
+	private static void printStudents(ArrayList<StudentMiniModel> list) {
 		// Test by printing all students in list
-		for (StudentModel s : list) 
+		for (StudentMiniModel s : list) 
 			System.out.println(s.toString());
 	}
 }

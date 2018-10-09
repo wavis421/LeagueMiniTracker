@@ -37,7 +37,7 @@ public class MiniTrackerDatabase {
 		connectToServer();
 	}
 
-	public boolean connectToServer() {
+	public Session connectToServer() {
 		// Check if need to re-connect
 		if (session != null && !session.isConnected()) {
 			session = null;
@@ -48,10 +48,10 @@ public class MiniTrackerDatabase {
 			return connectSSH();
 
 		// Still connected from previous attempt
-		return true;
+		return session;
 	}
 
-	private boolean connectSSH() {
+	private Session connectSSH() {
 		try {
 			java.util.Properties config = new java.util.Properties();
 			JSch jsch = new JSch();
@@ -66,14 +66,14 @@ public class MiniTrackerDatabase {
 			session.setConfig("TCPKeepAlive", "yes");
 
 			session.connect();
-			return true;
+			return session;
 
 		} catch (Exception e) {
 			// Failed maximum connection attempts: disconnect session
 			closeConnection();
 			System.out.println("Failed to connect to SSH Tunnel: " + e.getMessage());
 		}
-		return false;
+		return null;
 	}
 
 	public void closeConnection() {
@@ -90,24 +90,24 @@ public class MiniTrackerDatabase {
 			return true;
 	}
 
-	public ArrayList<StudentModel> getAllStudents() {
+	public ArrayList<StudentMiniModel> getAllStudents() {
 		return getStudents("");
 	}
 
-	public ArrayList<StudentModel> getActiveStudents() {
+	public ArrayList<StudentMiniModel> getActiveStudents() {
 		return getStudents("WHERE DummyData = 0");
 	}
 
-	public ArrayList<StudentModel> getDummyStudents() {
+	public ArrayList<StudentMiniModel> getDummyStudents() {
 		return getStudents("WHERE DummyData = 1");
 	}
 
-	public ArrayList<StudentModel> getStudentsByLevel(int level) {
+	public ArrayList<StudentMiniModel> getStudentsByLevel(int level) {
 		return getStudents("WHERE CurrentClass != '' AND LEFT(CurrentClass,2) = '" + String.valueOf(level) + "@'");
 	}
 
-	private ArrayList<StudentModel> getStudents(String where) {
-		ArrayList<StudentModel> list = new ArrayList<StudentModel>();
+	private ArrayList<StudentMiniModel> getStudents(String where) {
+		ArrayList<StudentMiniModel> list = new ArrayList<StudentMiniModel>();
 
 		try {
 			ChannelExec execChannel = (ChannelExec) session.openChannel("exec");
@@ -132,9 +132,9 @@ public class MiniTrackerDatabase {
 
 				// Data is comma separated string; split into array
 				String[] lineArray = line.split("\\s*,\\s*");
-				
+
 				// Add student to array list
-				list.add(new StudentModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
+				list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
 						lineArray[LAST_INITIAL_IDX], lineArray[GITHUB_NAME_IDX],
 						Integer.parseInt(lineArray[LOCATION_IDX]), lineArray[CURRENT_CLASS_IDX],
 						(lineArray[DUMMY_DATA_IDX].equals("1")) ? true : false));

@@ -28,6 +28,7 @@ public class MiniTrackerDatabase {
 	private static final int LOCATION_IDX = 4;
 	private static final int CURRENT_CLASS_IDX = 5;
 	private static final int DUMMY_DATA_IDX = 6;
+	private static final int NUM_DB_COLUMNS = 7;
 
 	// Save SSH Session
 	private Session session = null;
@@ -124,6 +125,10 @@ public class MiniTrackerDatabase {
 
 			// Process each line in input stream
 			while ((line = bufferedReader.readLine()) != null) {
+				// Until data is ready, reader returns line of NULL
+				if (line.equals("NULL"))
+					continue;
+
 				if (!skipped) {
 					// First line is title, so skip
 					skipped = true;
@@ -132,6 +137,10 @@ public class MiniTrackerDatabase {
 
 				// Data is comma separated string; split into array
 				String[] lineArray = line.split("\\s*,\\s*");
+				if (lineArray.length < NUM_DB_COLUMNS) {
+					System.out.println("Bad input (# columns " + lineArray.length + "): " + line);
+					continue;
+				}
 
 				// Add student to array list
 				list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],

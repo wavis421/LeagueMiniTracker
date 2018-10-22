@@ -24,11 +24,18 @@ public class MiniTrackerDatabase {
 	private static final int CLIENT_ID_IDX = 0;
 	private static final int FIRST_NAME_IDX = 1;
 	private static final int LAST_INITIAL_IDX = 2;
-	private static final int GITHUB_NAME_IDX = 3;
-	private static final int LOCATION_IDX = 4;
-	private static final int CURRENT_CLASS_IDX = 5;
-	private static final int DUMMY_DATA_IDX = 6;
+	private static final int CURRENT_CLASS_IDX = 3;
+	private static final int HOME_LOC_CODE_IDX = 4;
+	private static final int HOME_LOCATION_IDX = 5;
+	private static final int GITHUB_NAME_IDX = 6;
 	private static final int NUM_DB_COLUMNS = 7;
+	private static final int NUM_DB_COL_NO_GITHUB = (NUM_DB_COLUMNS - 1);
+
+	// MySql select commands: the concat adds commas between fields
+	private static final String SELECT_STRING_WITH_GITHUB = "concat(ClientID, ',', FirstName, ',', LastInitial, ',', "
+			+ "CurrentClass, ',', HomeLocCode, ',', HomeLocation, ',', GithubName)";
+	private static final String SELECT_STRING_NO_GITHUB = "concat(ClientID, ',', FirstName, ',', LastInitial, ',', "
+			+ "CurrentClass, ',', HomeLocCode, ',', HomeLocation)";
 
 	// Save SSH Session
 	private Session session = null;
@@ -92,43 +99,44 @@ public class MiniTrackerDatabase {
 	}
 
 	public ArrayList<StudentMiniModel> getAllStudents() {
-		return getStudents("");
-	}
-
-	public ArrayList<StudentMiniModel> getActiveStudents() {
-		return getStudents("WHERE DummyData = 0");
-	}
-
-	public ArrayList<StudentMiniModel> getDummyStudents() {
-		return getStudents("WHERE DummyData = 1");
+		// Get students with and without github
+		// Note: BufferedReader does not allow NULL github fields, so get separately
+		ArrayList<StudentMiniModel> list = getStudents(NUM_DB_COLUMNS, SELECT_STRING_WITH_GITHUB,
+				"WHERE GithubName != ''");
+		list.addAll(getStudents(NUM_DB_COL_NO_GITHUB, SELECT_STRING_NO_GITHUB, "WHERE GithubName IS NULL"));
+		return list;
 	}
 
 	public ArrayList<StudentMiniModel> getStudentsByLevel(int level) {
-		return getStudents("WHERE CurrentClass != '' AND LEFT(CurrentClass,2) = '" + String.valueOf(level) + "@'");
+		// Get students by Level, both with and without github
+		// Note: BufferedReader does not allow NULL fields, set get separately
+		String where = "WHERE CurrentClass != '' AND LEFT(CurrentClass,2) = '" + String.valueOf(level) + "@'";
+		ArrayList<StudentMiniModel> list = getStudents(NUM_DB_COLUMNS, SELECT_STRING_WITH_GITHUB,
+				where + " AND GithubName != ''");
+		list.addAll(getStudents(NUM_DB_COL_NO_GITHUB, SELECT_STRING_NO_GITHUB, where + " AND GithubName IS NULL"));
+		return list;
 	}
 
-	private ArrayList<StudentMiniModel> getStudents(String where) {
+	private ArrayList<StudentMiniModel> getStudents(int numColumns, String selectString, String where) {
 		ArrayList<StudentMiniModel> list = new ArrayList<StudentMiniModel>();
 
 		try {
 			ChannelExec execChannel = (ChannelExec) session.openChannel("exec");
-			execChannel.setCommand("mysql -u " + DB_USER
-					+ " -e \"SELECT concat(ClientID, ',', FirstName, ',', LastInitial, ',', GithubName, ',', "
-					+ "Location, ',', CurrentClass, ',', DummyData) FROM Students " + where + "\" " + DATABASE);
+			execChannel.setCommand("mysql -u " + DB_USER + " -e \"SELECT " + selectString + " FROM Students " + where
+					+ "\" " + DATABASE);
+
 			InputStream input = execChannel.getInputStream();
 			execChannel.connect();
 
-			InputStreamReader inputReader = new InputStreamReader(input);
+			waitForCommandExecution(execChannel);
+
+			InputStreamReader inputReader = new InputStreamReader(input, "UTF-8");
 			BufferedReader bufferedReader = new BufferedReader(inputReader);
 			String line = null;
 			boolean skipped = false;
 
 			// Process each line in input stream
 			while ((line = bufferedReader.readLine()) != null) {
-				// Until data is ready, reader returns line of NULL
-				if (line.equals("NULL"))
-					continue;
-
 				if (!skipped) {
 					// First line is title, so skip
 					skipped = true;
@@ -136,20 +144,28 @@ public class MiniTrackerDatabase {
 				}
 
 				// Data is comma separated string; split into array
-				String[] lineArray = line.split("\\s*,\\s*");
-				if (lineArray.length < NUM_DB_COLUMNS) {
-					System.out.println("Bad input (# columns " + lineArray.length + "): " + line);
+				String[] lineArray = line.split("\\s*,\\s*", -1);
+				if (lineArray.length == NUM_DB_COLUMNS) {
+					// Add student to array list (with github)
+					list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
+							lineArray[LAST_INITIAL_IDX], lineArray[GITHUB_NAME_IDX], lineArray[CURRENT_CLASS_IDX],
+							lineArray[HOME_LOC_CODE_IDX], lineArray[HOME_LOCATION_IDX]));
+
+				} else if (lineArray.length == NUM_DB_COL_NO_GITHUB) {
+					// Add student to array list, no github field
+					list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
+							lineArray[LAST_INITIAL_IDX], "", lineArray[CURRENT_CLASS_IDX], lineArray[HOME_LOC_CODE_IDX],
+							lineArray[HOME_LOCATION_IDX]));
+
+				} else {
+					System.out.println("Bad input (# columns " + lineArray.length + "): '" + line + "'");
 					continue;
 				}
-
-				// Add student to array list
-				list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
-						lineArray[LAST_INITIAL_IDX], lineArray[GITHUB_NAME_IDX],
-						Integer.parseInt(lineArray[LOCATION_IDX]), lineArray[CURRENT_CLASS_IDX],
-						(lineArray[DUMMY_DATA_IDX].equals("1")) ? true : false));
 			}
+			System.out.println("Mini Tracker DB: get students " + list.size());
 			bufferedReader.close();
 			inputReader.close();
+			input.close();
 
 			execChannel.disconnect();
 			return list;
@@ -158,5 +174,20 @@ public class MiniTrackerDatabase {
 			System.out.println("MySql command failed: " + e.getMessage());
 		}
 		return null;
+	}
+
+	private void waitForCommandExecution(ChannelExec execChannel) {
+		int sleepCount = 0;
+		// Sleep for up to 10 seconds while the command executes
+		do {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				System.out.println("Interrupted exception while waiting for command to finish: " + e.getMessage());
+			}
+		} while (!execChannel.isClosed() && sleepCount++ < 100);
+
+		if (sleepCount >= 100)
+			System.out.println("SELECT command timed out");
 	}
 }

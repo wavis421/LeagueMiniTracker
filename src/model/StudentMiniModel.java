@@ -3,18 +3,17 @@ package model;
 public class StudentMiniModel implements Comparable<StudentMiniModel> {
 	int clientID;
 	String firstName, lastInitial, githubName, currentClass;
-	int location;
-	boolean dummyData;
+	String locCode, location;
 
-	public StudentMiniModel(int clientID, String firstName, String lastInitial, String githubName, int location,
-			String currentClass, boolean dummyData) {
+	public StudentMiniModel(int clientID, String firstName, String lastInitial, String githubName, String currentClass,
+			String locCode, String location) {
 		this.clientID = clientID;
 		this.firstName = firstName;
 		this.lastInitial = lastInitial;
 		this.githubName = githubName;
-		this.location = location;
 		this.currentClass = currentClass;
-		this.dummyData = dummyData;
+		this.locCode = locCode;
+		this.location = location;
 	}
 
 	public int getClientID() {
@@ -37,18 +36,18 @@ public class StudentMiniModel implements Comparable<StudentMiniModel> {
 		return currentClass;
 	}
 
-	public int getLocation() {
-		return location;
+	public String getLocCode() {
+		return locCode;
 	}
 
-	public boolean isDummyData() {
-		return dummyData;
+	public String getLocation() {
+		return location;
 	}
 
 	public String toString() {
 		// For debug, print all fields of student object
 		return "ID: " + clientID + ", " + firstName + " " + lastInitial + ", git: " + githubName + ", loc: " + location
-				+ ", class: " + currentClass + ", dummy: " + dummyData;
+				+ " (" + locCode + "), class: " + currentClass;
 	}
 
 	@Override

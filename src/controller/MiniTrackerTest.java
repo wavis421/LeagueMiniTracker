@@ -14,12 +14,6 @@ public class MiniTrackerTest {
 		System.out.println("\nAll Students: ");
 		printStudents(conn.getAllStudents());
 		
-		System.out.println("\nDummy Students: ");
-		printStudents(conn.getDummyStudents());
-		
-		System.out.println("\nActive Students: ");
-		printStudents(conn.getActiveStudents());
-		
 		System.out.println("\nStudents Level 3: ");
 		printStudents(conn.getStudentsByLevel(3));
 		
@@ -30,5 +24,6 @@ public class MiniTrackerTest {
 		// Test by printing all students in list
 		for (StudentMiniModel s : list) 
 			System.out.println(s.toString());
+		System.out.println("# Students: " + list.size());
 	}
 }

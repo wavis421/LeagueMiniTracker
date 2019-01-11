@@ -23,8 +23,8 @@ public class MiniTrackerTest {
 		System.out.println("\nAll Students: ");
 		printStudents(conn.getAllStudents());
 		
-		System.out.println("\nStudents Level 3: ");
-		printStudents(conn.getStudentsByLevel(3));
+		System.out.println("\nStudents Level 'AD': ");
+		printStudents(conn.getStudentsByLevel("AD"));
 		
 		conn.closeConnection();
 	}

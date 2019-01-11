@@ -25,17 +25,18 @@ public class MiniTrackerDatabase {
 	private static final int FIRST_NAME_IDX = 1;
 	private static final int LAST_INITIAL_IDX = 2;
 	private static final int CURRENT_CLASS_IDX = 3;
-	private static final int HOME_LOC_CODE_IDX = 4;
-	private static final int HOME_LOCATION_IDX = 5;
-	private static final int GITHUB_NAME_IDX = 6;
-	private static final int NUM_DB_COLUMNS = 7;
+	private static final int CURRENT_LEVEL_IDX = 4;
+	private static final int HOME_LOC_CODE_IDX = 5;
+	private static final int HOME_LOCATION_IDX = 6;
+	private static final int GITHUB_NAME_IDX = 7;
+	private static final int NUM_DB_COLUMNS = 8;
 	private static final int NUM_DB_COL_NO_GITHUB = (NUM_DB_COLUMNS - 1);
 
 	// MySql select commands: the concat adds commas between fields
 	private static final String SELECT_STRING_WITH_GITHUB = "concat(ClientID, ',', FirstName, ',', LastInitial, ',', "
-			+ "CurrentClass, ',', HomeLocCode, ',', HomeLocation, ',', GithubName)";
+			+ "CurrentClass, ',', CurrentLevel, ',', HomeLocCode, ',', HomeLocation, ',', GithubName)";
 	private static final String SELECT_STRING_NO_GITHUB = "concat(ClientID, ',', FirstName, ',', LastInitial, ',', "
-			+ "CurrentClass, ',', HomeLocCode, ',', HomeLocation)";
+			+ "CurrentClass, ',', CurrentLevel, ',', HomeLocCode, ',', HomeLocation)";
 
 	// Save SSH Session
 	private Session session = null;
@@ -107,10 +108,10 @@ public class MiniTrackerDatabase {
 		return list;
 	}
 
-	public ArrayList<StudentMiniModel> getStudentsByLevel(int level) {
+	public ArrayList<StudentMiniModel> getStudentsByLevel(String level) {
 		// Get students by Level, both with and without github
 		// Note: BufferedReader does not allow NULL fields, set get separately
-		String where = "WHERE CurrentClass != '' AND LEFT(CurrentClass,2) = '" + String.valueOf(level) + "@'";
+		String where = "WHERE CurrentClass != '' AND LEFT(CurrentClass,3) = '" + level + "@'";
 		ArrayList<StudentMiniModel> list = getStudents(NUM_DB_COLUMNS, SELECT_STRING_WITH_GITHUB,
 				where + " AND GithubName != ''");
 		list.addAll(getStudents(NUM_DB_COL_NO_GITHUB, SELECT_STRING_NO_GITHUB, where + " AND GithubName IS NULL"));
@@ -149,13 +150,13 @@ public class MiniTrackerDatabase {
 					// Add student to array list (with github)
 					list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
 							lineArray[LAST_INITIAL_IDX], lineArray[GITHUB_NAME_IDX], lineArray[CURRENT_CLASS_IDX],
-							lineArray[HOME_LOC_CODE_IDX], lineArray[HOME_LOCATION_IDX]));
+							lineArray[CURRENT_LEVEL_IDX], lineArray[HOME_LOC_CODE_IDX], lineArray[HOME_LOCATION_IDX]));
 
 				} else if (lineArray.length == NUM_DB_COL_NO_GITHUB) {
 					// Add student to array list, no github field
 					list.add(new StudentMiniModel(Integer.parseInt(lineArray[CLIENT_ID_IDX]), lineArray[FIRST_NAME_IDX],
-							lineArray[LAST_INITIAL_IDX], "", lineArray[CURRENT_CLASS_IDX], lineArray[HOME_LOC_CODE_IDX],
-							lineArray[HOME_LOCATION_IDX]));
+							lineArray[LAST_INITIAL_IDX], "", lineArray[CURRENT_CLASS_IDX], lineArray[CURRENT_LEVEL_IDX], 
+							lineArray[HOME_LOC_CODE_IDX], lineArray[HOME_LOCATION_IDX]));
 
 				} else {
 					System.out.println("Bad input (# columns " + lineArray.length + "): '" + line + "'");
